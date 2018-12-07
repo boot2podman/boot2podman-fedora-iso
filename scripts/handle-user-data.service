@@ -3,7 +3,7 @@
 [Unit]
 Description=Minishift handle user data
 ConditionFileIsExecutable=/usr/local/bin/minishift-handle-user-data
-Before=docker.service
+Before=io.podman.service
 
 [Service]
 Type=oneshot

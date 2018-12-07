@@ -1,31 +1,27 @@
 #!/bin/sh
 
-LABEL=b2d-data
-MAGIC="boot2docker, please format-me"
+LABEL=b2p-data
+MAGIC="boot2podman, please format-me"
 UNPARTITIONED_HD="/dev/$(lsblk | grep disk | grep ".*da" | cut -f1 -d' ')"
 
 # Function to mount partitions
 mount_partitions() {
-    PARTNAME=`echo "$BOOT2DOCKER_DATA" | sed 's/.*\///'`
+    PARTNAME=`echo "$BOOT2PODMAN_DATA" | sed 's/.*\///'`
     echo "mount p:$PARTNAME ..."
     mkdir -p /mnt/$PARTNAME
-    if ! mount $BOOT2DOCKER_DATA /mnt/$PARTNAME 2>/dev/null; then
+    if ! mount $BOOT2PODMAN_DATA /mnt/$PARTNAME 2>/dev/null; then
         # for some reason, mount doesn't like to modprobe btrfs
-        BOOT2DOCKER_FSTYPE=`blkid -o export $BOOT2DOCKER_DATA | grep TYPE= | cut -d= -f2`
-        modprobe $BOOT2DOCKER_FSTYPE || true
+        BOOT2PODMAN_FSTYPE=`blkid -o export $BOOT2PODMAN_DATA | grep TYPE= | cut -d= -f2`
+        modprobe $BOOT2PODMAN_FSTYPE || true
         umount -f /mnt/$PARTNAME || true
-        mount $BOOT2DOCKER_DATA /mnt/$PARTNAME
+        mount $BOOT2PODMAN_DATA /mnt/$PARTNAME
     fi
 
-    # Activate swap partition
-    echo "activate swap ..."
-    swapon "${UNPARTITIONED_HD}2"
-
     # Just in case, the links will fail if not
-    umount -f /var/lib/docker || true
-    rm -rf /var/lib/docker /var/lib/boot2docker /var/lib/minishift /opt
+    umount -f /var/lib/containers || true
+    rm -rf /var/lib/containers /var/lib/boot2podman /opt
 
-    # Detected a disk with a normal linux install (/var/lib/docker + more))
+    # Detected a disk with a normal linux install (/var/lib/containers + more))
     if [ ! -d "/var/lib" ]; then
         mkdir -p /var/lib
     fi
@@ -38,29 +34,21 @@ mount_partitions() {
         ln -s /mnt/$PARTNAME/etc/pki/product /etc/pki/product
     fi
 
-    mkdir -p /mnt/$PARTNAME/var/lib/docker
-    mkdir -p /var/lib/docker
-    mount --bind /mnt/$PARTNAME/var/lib/docker /var/lib/docker
-    restorecon -R /var/lib/docker
+    mkdir -p /mnt/$PARTNAME/var/lib/containers
+    mkdir -p /var/lib/containers
+    mount --bind /mnt/$PARTNAME/var/lib/containers /var/lib/containers
+    restorecon -R /var/lib/containers
 
-    mkdir -p /mnt/$PARTNAME/var/lib/boot2docker
-    mkdir -p /var/lib/boot2docker
-    mount --bind /mnt/$PARTNAME/var/lib/boot2docker /var/lib/boot2docker
-
-    mkdir -p /mnt/$PARTNAME/var/lib/minishift
-    mkdir -p /var/lib/minishift
-    mount --bind /mnt/$PARTNAME/var/lib/minishift /var/lib/minishift
-
-    mkdir -p /mnt/$PARTNAME/var/lib/origin
-    mkdir -p /var/lib/origin
-    mount --bind /mnt/$PARTNAME/var/lib/origin /var/lib/origin
+    mkdir -p /mnt/$PARTNAME/var/lib/boot2podman
+    mkdir -p /var/lib/boot2podman
+    mount --bind /mnt/$PARTNAME/var/lib/boot2podman /var/lib/boot2podman
 
     mkdir -p /mnt/$PARTNAME/opt
     ln -s /mnt/$PARTNAME/opt /opt
 
     # Move userdata to persistent storage
     if [ -e "/userdata.tar" ]; then
-        mv /userdata.tar /var/lib/boot2docker/
+        mv /userdata.tar /var/lib/boot2podman/
     fi
 
     ls -l /mnt/$PARTNAME
@@ -69,25 +57,7 @@ mount_partitions() {
 # Function to partion and format the data disk
 prepare_partions() {
     # Create the partition, format it and then mount it
-    echo "NEW boot2docker managed disk image ($UNPARTITIONED_HD): formatting it for use"
-
-    # Add a swap partition (so Docker doesn't complain about it missing)
-    (echo n; echo p; echo 2; echo ; echo +1000M ; echo w) | fdisk $UNPARTITIONED_HD
-    # Let kernel re-read partition table
-    partprobe
-
-    (echo t; echo 82; echo w) | fdisk $UNPARTITIONED_HD
-    # Let kernel re-read partition table
-    partprobe
-    # wait for the partition to actually exist, timeout after about 5 seconds
-    local timer=0
-    while [ "$timer" -lt 10 -a ! -b "${UNPARTITIONED_HD}2" ]; do
-        timer=$((timer + 1))
-        sleep 0.5
-    done
-
-    # Prepare the swap partition
-    mkswap "${UNPARTITIONED_HD}2"
+    echo "NEW boot2podman managed disk image ($UNPARTITIONED_HD): formatting it for use"
 
     # Add the data partition
     (echo n; echo p; echo 1; echo ; echo ; echo w) | fdisk $UNPARTITIONED_HD
@@ -100,17 +70,17 @@ prepare_partions() {
         sleep 0.5
     done
 
-    BOOT2DOCKER_DATA=`echo "${UNPARTITIONED_HD}1"`
-    mkfs.xfs -n ftype=1 -i size=2048 -L $LABEL $BOOT2DOCKER_DATA
+    BOOT2PODMAN_DATA=`echo "${UNPARTITIONED_HD}1"`
+    mkfs.xfs -n ftype=1 -i size=2048 -L $LABEL $BOOT2PODMAN_DATA
 }
 
-# Function to extract userdata.tar containing the ssh keys into the home directory /home/docker
+# Function to extract userdata.tar containing the ssh keys into the home directory /home/tc
 handle_user_data() {
-    # Extract the userdata into docker user home directory
-    if [ -e "/var/lib/boot2docker/userdata.tar" ]; then
-        tar xf /var/lib/boot2docker/userdata.tar -C /home/docker/ > /var/log/userdata.log 2>&1
-        rm -f '/home/docker/boot2docker, please format-me'
-        chown -R docker:docker /home/docker/.ssh
+    # Extract the userdata into tc user home directory
+    if [ -e "/var/lib/boot2podman/userdata.tar" ]; then
+        tar xf /var/lib/boot2podman/userdata.tar -C /home/tc/ > /var/log/userdata.log 2>&1
+        rm -f '/home/tc/boot2podman, please format-me'
+        chown -R tc:staff /home/tc/.ssh
     else
         echo "Unable to find userdata.tar"
         exit 1
@@ -120,19 +90,19 @@ handle_user_data() {
 # TODO Need to make sure to have /sbin on the PATH. Is there a better way?
 # http://stackoverflow.com/questions/19983710/some-commands-not-wroking-on-remote-servers-through-ssh-shell
 # https://github.com/LalatenduMohanty/centos-live-iso/issues/11
-echo 'PATH=$PATH:/sbin' >> /home/docker/.bashrc
+echo 'PATH=$PATH:/sbin' >> /home/tc/.bashrc
 
-# If there is a partition with `boot2docker-data` as its label we are dealing with
-# an already bootstrapped docker-machine. Just make sure to mount data partition and to unpack
-# userdata.tar. Remember, /home/docker is not persistent
-BOOT2DOCKER_DATA=`blkid -o device -l -t LABEL=$LABEL`
-if [ -n "$BOOT2DOCKER_DATA" ]; then
+# If there is a partition with `boot2podman-data` as its label we are dealing with
+# an already bootstrapped podman-machine. Just make sure to mount data partition and to unpack
+# userdata.tar. Remember, /home/tc is not persistent
+BOOT2PODMAN_DATA=`blkid -o device -l -t LABEL=$LABEL`
+if [ -n "$BOOT2PODMAN_DATA" ]; then
     mount_partitions
     handle_user_data
     exit 0
 fi
 
-# Test for our magic string (it means that the disk was made by ./boot2docker init)
+# Test for our magic string (it means that the disk was made by ./boot2podman init)
 HEADER=`dd if=$UNPARTITIONED_HD bs=1 count=${#MAGIC} 2>/dev/null`
 if [ "$HEADER" = "$MAGIC" ]; then
     # Read /userdata.tar with ssh keys and place it temporarily under /

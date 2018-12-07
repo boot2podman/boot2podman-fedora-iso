@@ -1,9 +1,9 @@
-<a name="creating-a-minishift-fedora-iso"></a>
-# Minishift Fedora ISO
+<a name="creating-a-boot2podman-fedora-iso"></a>
+# Boot2podman Fedora ISO
 
 This repository contains all the instructions and code to build a Live ISO based on Fedora
-which can be used by [minishift](https://github.com/minishift/minishift) as an alternative to
-the CentOS ISO.
+which can be used by [podman-machine](https://github.com/boot2podman/machine) as an alternative to
+the Boot2podman ISO.
 
 ----
 
@@ -45,17 +45,13 @@ If you don't have _livecd-tools or using different linux distro other than Fedor
 
 * [Install livecd-tools](https://github.com/rhinstaller/livecd-tools)
 
-  Note: We use to have docker installed on system to get selinux context, [check bugzilla](https://bugzilla.redhat.com/show_bug.cgi?id=1303565)
-
-        $ dnf install -y livecd-tools docker
-
 
 <a name="building-the-iso"></a>
 #### Building the ISO
 
 ```
-$ git clone https://github.com/minishift/minishift-fedora-iso.git
-$ cd minishift-fedora-iso
+$ git clone https://github.com/boot2podman/boot2podman-fedora-iso.git
+$ cd boot2podman-fedora-iso
 $ make
 ```
 
@@ -74,11 +70,11 @@ $ make
 #### Building the ISO
 
 ```
-$ git clone https://github.com/minishift/minishift-fedora-iso.git
-$ cd minishift-fedora-iso
+$ git clone https://github.com/boot2podman/boot2podman-fedora-iso.git
+$ cd boot2podman-fedora-iso
 $ vagrant up
 $ vagrant ssh
-$ cd <path to minishift-fedora-iso directory on the VM>/minishift-fedora-iso
+$ cd <path to boot2podman-fedora-iso directory on the VM>/boot2podman-fedora-iso
 $ make
 ```
 
@@ -102,18 +98,6 @@ Setup your build environment by following the instructions provided in [Building
 
 Note: Building ISO might require you to have Vagrant environment if you are not using host other than Fedora.
 
-#### Run the tests
-
-Once the ISO is built from above step, use following command to run tests:
-
-```
-$ make test
-```
-
-Note: If you are using the Vagrant environment, you need to exit from it and come back to host to run the above command.
-
-This command will fetch the latest [minishift](http://github/minishift/minishift) binary and run the [tests](tests/test.sh).
-
 <a name="further-reading"></a>
 ## Further reading
 
@@ -124,8 +108,6 @@ image itself. To do so you have to get familiar with
 <a name="community"></a>
 ## Community
 
-You can reach the Minishift community by:
+You can reach the Podman community by:
 
-- Signing up to our [mailing list](https://lists.minishift.io/admin/lists/minishift.lists.minishift.io)
-
-- Joining the `#minishift` channel on [Freenode IRC](https://freenode.net/)
+- Joining the `#podman` channel on [Freenode IRC](https://freenode.net/)

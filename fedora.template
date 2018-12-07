@@ -20,6 +20,7 @@ part / --size 10240 --fstype ext4
 repo --name=fedora --mirrorlist=https://mirrors.fedoraproject.org/mirrorlist?repo=fedora-$releasever&arch=$basearch
 repo --name=updates --mirrorlist=https://mirrors.fedoraproject.org/mirrorlist?repo=updates-released-f$releasever&arch=$basearch
 repo --name=hvkvp --baseurl=https://copr-be.cloud.fedoraproject.org/results/gbraad/go-hvkvp/epel-7-x86_64/
+repo --name=varlink --baseurl=https://copr-be.cloud.fedoraproject.org/results/@varlink/varlink/fedora-$releasever-$basearch/
 
 shutdown
 
@@ -29,7 +30,8 @@ dracut-live
 openssl
 bash
 fedora-logos
-docker
+podman
+buildah
 dracut
 e2fsprogs
 efibootmgr
@@ -48,6 +50,9 @@ nfs-utils
 go-hvkvp
 python-setuptools
 dnsmasq
+com.redhat.resolver
+fedora-varlink
+patch
 
 #Packages to be removed
 -aic94xx-firmware
@@ -84,12 +89,13 @@ echo "blacklist floppy" > /etc/modprobe.d/nofloppy.conf
 # Setting a global Locale for the server
 echo "LANG=\"C\"" > /etc/locale.conf
 
-# Add docker user with 'tcuser' password
-/usr/sbin/useradd -p 'wtd3OP71kP1NQ' docker
-/usr/sbin/usermod -a -G docker docker
+# Add tc user with 'tcuser' password
+/usr/sbin/useradd -p 'wtd3OP71kP1NQ' tc
+/usr/sbin/groupadd staff
+/usr/sbin/usermod -a -G staff tc
 
-# sudo permission for docker user
-echo "%docker ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers.d/docker
+# sudo permission for tc user
+echo "%tc ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers.d/tc
 sed -i "s/^.*requiretty/#Defaults requiretty/" /etc/sudoers
 
 # Place holder for base64 encode handle-user-data script
@@ -97,36 +103,11 @@ cat > handle-user-data.base64 << EOF
 ${handle_user_data}
 EOF
 
-# minishift as variant for custom provisioner
-echo "VARIANT=\"minishift\"" >> /etc/os-release
-echo "VARIANT_VERSION=\"${version}\"" >> /etc/os-release
-echo "BUILD_ID=\"${build_id}\"" >> /etc/os-release
-
 # Remove redhat-logo and firmware package to help with reduce box size
 yum remove -y fedora-logos linux-firmware
 
 # Clear yum package and metadata cache
 yum clean all
-
-# Place holder cert generation script. This is needed to create certs when system
-# boots first time to make sure docker daemon running with cert enabled. On restart
-# this script will first check cert is already available or not.
-cat > cert-gen.base64 << EOF
-${cert_gen}
-EOF
-
-base64 -d < cert-gen.base64 > minishift-cert-gen
-rm -f cert-gen.base64
-chmod +x minishift-cert-gen
-mv minishift-cert-gen /usr/local/bin/
-
-# update docker.service file to exec the certificate generation script
-sed -i.back 's/ExecStart=/ExecStartPre=\/usr\/local\/bin\/minishift-cert-gen\n&/' /usr/lib/systemd/system/docker.service
-sed -i.back '/After=*/c\After=network.target rc-local.service' /usr/lib/systemd/system/docker.service
-sed -i.back '/After=*/c\After=cloud-init.service rc-local.service' /usr/lib/systemd/system/docker-storage-setup.service
-
-# update docker-storage to use overlay2 as default storage driver
-echo 'DOCKER_STORAGE_OPTIONS="--storage-driver overlay2"' > /etc/sysconfig/docker-storage
 
 # Show a warning banner when using yum to install software
 mv /usr/bin/yum /usr/bin/yum-unsupported
@@ -186,11 +167,33 @@ systemctl disable NetworkManager-wait-online
 systemctl disable dnsmasq
 systemctl enable minishift-handle-user-data
 systemctl enable minishift-set-ipaddress
-systemctl enable docker
+systemctl enable io.podman
+systemctl enable com.redhat.resolver
+
+# Enable podman in resolver
+patch /usr/lib/fedora.json << EOF
+--- fedora.json.orig	2018-11-11 14:24:43.022068639 +0100
++++ fedora.json	2018-12-07 22:34:24.658048674 +0100
+@@ -50,6 +50,12 @@
+       }
+     },
+     {
++      "address": "unix:/run/podman/io.podman;mode=0600",
++      "interfaces": [
++        "io.podman"
++      ]
++    },
++    {
+       "address": "unix:/run/org.varlink.resolver;mode=0666",
+       "interfaces": [
+         "com.redhat.resolver",
+
+EOF
 
 
 # Clean
 rm -rf /usr/lib/locale/locale-archive
 rm -rf /var/cache/yum/*
+rm -rf /var/cache/dnf/*
 
 %end
