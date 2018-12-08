@@ -190,6 +190,9 @@ patch /usr/lib/fedora.json << EOF
 
 EOF
 
+# SELinux
+/sbin/restorecon -R -v /
+
 
 # Clean
 rm -rf /usr/lib/locale/locale-archive
