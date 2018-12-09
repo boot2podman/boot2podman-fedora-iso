@@ -53,6 +53,7 @@ dnsmasq
 com.redhat.resolver
 fedora-varlink
 patch
+psmisc
 
 #Packages to be removed
 -aic94xx-firmware
