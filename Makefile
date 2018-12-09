@@ -45,7 +45,7 @@ fedora_iso: iso_creation
 .PHONY: fedora_kickstart
 fedora_kickstart: KICKSTART_FILE=fedora.ks
 fedora_kickstart: KICKSTART_TEMPLATE=fedora.template
-fedora_kickstart: RELEASEVER=28
+fedora_kickstart: RELEASEVER=29
 fedora_kickstart: BASEARCH=x86_64
 fedora_kickstart: kickstart
 
