@@ -87,6 +87,15 @@ handle_user_data() {
     fi
 }
 
+root_ssh_access() {
+    if ! [ -e "/root/.ssh" ]; then
+        mkdir /root/.ssh
+        chmod 700 /root/.ssh
+        cp /home/tc/.ssh/authorized_keys /root/.ssh/
+        chmod 600 /root/.ssh/authorized_keys
+    fi
+}
+
 # TODO Need to make sure to have /sbin on the PATH. Is there a better way?
 # http://stackoverflow.com/questions/19983710/some-commands-not-wroking-on-remote-servers-through-ssh-shell
 # https://github.com/LalatenduMohanty/centos-live-iso/issues/11
@@ -111,5 +120,6 @@ if [ "$HEADER" = "$MAGIC" ]; then
     prepare_partions
     mount_partitions
     handle_user_data
+    root_ssh_access
     exit 0
 fi
