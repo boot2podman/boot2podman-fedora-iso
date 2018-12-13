@@ -34,6 +34,7 @@ podman
 buildah
 dracut
 e2fsprogs
+xfsprogs
 efibootmgr
 grub2
 grub2-efi
