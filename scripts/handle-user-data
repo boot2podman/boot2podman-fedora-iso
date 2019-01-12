@@ -108,6 +108,7 @@ BOOT2PODMAN_DATA=`blkid -o device -l -t LABEL=$LABEL`
 if [ -n "$BOOT2PODMAN_DATA" ]; then
     mount_partitions
     handle_user_data
+    root_ssh_access
     exit 0
 fi
 
