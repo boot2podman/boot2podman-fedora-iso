@@ -20,7 +20,7 @@ part / --size 10240 --fstype ext4
 repo --name=fedora --mirrorlist=https://mirrors.fedoraproject.org/mirrorlist?repo=fedora-$releasever&arch=$basearch
 repo --name=updates --mirrorlist=https://mirrors.fedoraproject.org/mirrorlist?repo=updates-released-f$releasever&arch=$basearch
 repo --name=hvkvp --baseurl=https://copr-be.cloud.fedoraproject.org/results/gbraad/go-hvkvp/epel-7-x86_64/
-repo --name=varlink --baseurl=https://copr-be.cloud.fedoraproject.org/results/@varlink/varlink/fedora-$releasever-$basearch/
+repo --name=varlink --baseurl=https://copr-be.cloud.fedoraproject.org/results/@varlink/varlink/fedora-29-x86_64/
 
 shutdown
 
