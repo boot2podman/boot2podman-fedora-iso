@@ -2,7 +2,7 @@
 # vi: set ft=ruby :
 
 Vagrant.configure(2) do |config|
-  config.vm.box = "generic/fedora29"
+  config.vm.box = "generic/fedora30"
 
   config.vm.provider "virtualbox" do |v, override|
     v.memory = 2048
