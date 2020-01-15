@@ -32,6 +32,7 @@ bash
 fedora-logos
 podman
 buildah
+skopeo
 dracut
 e2fsprogs
 xfsprogs
@@ -51,10 +52,11 @@ nfs-utils
 go-hvkvp
 python-setuptools
 dnsmasq
-com.redhat.resolver
-fedora-varlink
 patch
 psmisc
+akmod-VirtualBox
+virtualbox-guest-additions
+libvarlink
 
 #Packages to be removed
 -aic94xx-firmware
@@ -80,6 +82,9 @@ psmisc
 -iwl7265-firmware
 -postfix
 -rsyslog
+-adwaita-icon-theme
+-hicolor-icon-theme
+-gtk3
 %end
 
 %post
@@ -94,7 +99,7 @@ echo "LANG=\"C\"" > /etc/locale.conf
 # Add tc user with 'tcuser' password
 /usr/sbin/useradd -p 'wtd3OP71kP1NQ' tc
 /usr/sbin/groupadd staff
-/usr/sbin/usermod -a -G staff tc
+/usr/sbin/usermod -a -G staff,vboxsf tc
 
 # sudo permission for tc user
 echo "%tc ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers.d/tc
@@ -170,27 +175,24 @@ systemctl disable dnsmasq
 systemctl enable minishift-handle-user-data
 systemctl enable minishift-set-ipaddress
 systemctl enable io.podman
-systemctl enable com.redhat.resolver
+systemctl enable vboxservice.service
 
-# Enable podman in resolver
-patch /usr/lib/fedora.json << EOF
---- fedora.json.orig	2018-11-11 14:24:43.022068639 +0100
-+++ fedora.json	2018-12-07 22:34:24.658048674 +0100
-@@ -50,6 +50,12 @@
-       }
-     },
-     {
-+      "address": "unix:/run/podman/io.podman;mode=0600",
-+      "interfaces": [
-+        "io.podman"
-+      ]
-+    },
-+    {
-       "address": "unix:/run/org.varlink.resolver;mode=0666",
-       "interfaces": [
-         "com.redhat.resolver",
 
+# Need akmods - which wont run until first boot
+patch /usr/lib/systemd/system/vboxservice.service << EOF
+--- /usr/lib/systemd/system/vboxservice.service.orig	2020-01-13 18:32:49.547008373 -0500
++++ /usr/lib/systemd/system/vboxservice.service	2020-01-13 18:33:07.457009094 -0500
+@@ -1,6 +1,8 @@
+ [Unit]
+ Description=VirtualBox guest services
+ ConditionVirtualization=|oracle
++Wants=akmods.service
++After=akmods.service
+
+ [Service]
+ ExecStart=/usr/sbin/VBoxService -f
 EOF
+
 
 # SELinux
 /sbin/restorecon -R -v /
